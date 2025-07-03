@@ -1,0 +1,4 @@
+# Ignore environment variables
+venv
+
+instructions.pdf
