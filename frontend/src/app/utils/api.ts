@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://backend-tanvi.onrender.com'; //https://localhost:8000
 
 export interface FinancialData {
   division: string;

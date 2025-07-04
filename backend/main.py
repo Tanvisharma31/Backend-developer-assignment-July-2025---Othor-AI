@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 from typing import List, Dict, Any
 import json
-from pydantic import BaseModel
 
 app = FastAPI(
     title="Wayne Enterprises Dashboard API",
@@ -27,6 +26,10 @@ app.add_middleware(
 # Datasets are in the 'datasets' folder next to this file
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "datasets"))
 print(f"Looking for datasets in: {DATA_DIR}")  # Debug print
+
+@app.get("/")
+async def root():
+    return {"message": "Wayne Enterprises Dashboard API", "status": "running"}
 
 @app.get("/api/health")
 async def health_check():
@@ -145,3 +148,7 @@ async def get_hr_analytics():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
