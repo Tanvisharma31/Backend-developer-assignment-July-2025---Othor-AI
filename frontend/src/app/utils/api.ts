@@ -1,99 +1,167 @@
-const API_BASE_URL = 'https://backend-tanvi.onrender.com'; //https://localhost:8000
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
-export interface FinancialData {
-  division: string;
+// Types for Summary API
+export interface SummaryMetrics {
+  total_revenue: string;
+  avg_retention: string;
+  public_safety_score: string;
+  top_division: string;
+  message: string;
+}
+
+// Types for Revenue API
+export interface RevenueTrendData {
   quarter: string;
-  year: number;
-  revenue: number;
-  profit: number;
-  rnd_investment: number;
-  market_share: number;
-  customer_satisfaction: number;
+  [key: string]: any; // For dynamic division names
 }
 
-export interface SecurityMetrics {
-  year_month: string;
-  District: string;
-  Incidents_Reported: number;
-  Response_Time_Minutes: number;
-  Wayne_Tech_Deployed: number;
-  Public_Safety_Score: number;
+export interface RevenueByDivision {
+  data: Record<string, number>;
+  message: string;
 }
 
-export interface RDProject {
-  Project_ID: string;
-  Project_Name: string;
-  Division: string;
-  Start_Date: string;
-  Budget_Allocation: number;
-  Total_Spent: number;
-  Commercialization_Potential: string;
-  Timeline_Adherence: number;
-  Security_Classification: string;
-  status: string;
+// Types for HR API
+export interface RetentionData {
+  month: string;
+  [key: string]: any; // For dynamic division names
 }
 
-export interface SupplyChainMetrics {
-  Facility: string;
-  Product_Line: string;
-  Production_Volume: number;
-  Cost_Per_Unit: number;
-  Quality_Score: number;
-  Sustainability_Rating: number;
-  Disruption_Hours: number;
+export interface HRMetrics {
+  avg_training_hours: number;
+  avg_performance_rating: number;
+  avg_satisfaction_score: number;
+  message: string;
 }
 
-export interface HRAnalytics {
-  Division: string;
-  Hierarchy_Level: string;
-  Retention_Rate: number;
-  Training_Hours: number;
-  Performance_Rating: number;
-  Diversity_Index: number;
-  Satisfaction_Score: number;
+// Types for Security API
+export type SecurityIncident = {
+  month: string;
+} & Record<string, number>;
+
+export type SafetyScore = {
+  month: string;
+} & Record<string, number>;
+
+// Types for Supply Chain API
+export interface SupplyChainMetric {
+  facility: string;
+  product_line: string;
+  production_volume: number;
+  avg_cost_per_unit: number;
+  avg_quality_score: number;
+  avg_sustainability_rating: number;
+  total_disruption_hours: number;
 }
 
-export const fetchFinancialData = async (): Promise<FinancialData[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/financial/quarterly`);
+export type SupplyChainDisruption = {
+  month: string;
+} & Record<string, number>;
+
+// Types for Narrative API
+export interface DataNarrative {
+  headline: string;
+  insight: string;
+  metrics: {
+    total_revenue: string;
+    revenue_growth: string;
+    avg_retention: string;
+    avg_satisfaction: string;
+    total_incidents: number;
+    avg_safety_score: string;
+    total_disruptions: string;
+    avg_quality_score: string;
+  };
+  timestamp: string;
+}
+
+// Summary Endpoints
+export const fetchSummaryMetrics = async (): Promise<SummaryMetrics> => {
+  const response = await fetch(`${API_BASE_URL}/summary`);
   if (!response.ok) {
-    throw new Error('Failed to fetch financial data');
+    throw new Error('Failed to fetch summary metrics');
   }
-  const data = await response.json();
-  return data.data;
+  return await response.json();
 };
 
-export const fetchSecurityMetrics = async (): Promise<SecurityMetrics[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/security/metrics`);
+// Revenue Endpoints
+export const fetchRevenueTrends = async (): Promise<RevenueTrendData[]> => {
+  const response = await fetch(`${API_BASE_URL}/revenue/trends`);
   if (!response.ok) {
-    throw new Error('Failed to fetch security metrics');
+    throw new Error('Failed to fetch revenue trends');
   }
   const data = await response.json();
-  return data.data;
+  return data.data || [];
 };
 
-export const fetchRDProjects = async (): Promise<RDProject[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/rd/projects`);
+export const fetchRevenueByDivision = async (): Promise<RevenueByDivision> => {
+  const response = await fetch(`${API_BASE_URL}/revenue/by-division`);
   if (!response.ok) {
-    throw new Error('Failed to fetch R&D projects');
+    throw new Error('Failed to fetch revenue by division');
+  }
+  return await response.json();
+};
+
+// HR Endpoints
+export const fetchRetentionRates = async (): Promise<RetentionData[]> => {
+  const response = await fetch(`${API_BASE_URL}/hr/retention`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch retention rates');
   }
   const data = await response.json();
-  return data.data;
+  return data.data || [];
 };
 
-export const fetchSupplyChainMetrics = async (): Promise<SupplyChainMetrics[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/supply-chain/metrics`);
+export const fetchHRMetrics = async (): Promise<HRMetrics> => {
+  const response = await fetch(`${API_BASE_URL}/hr/metrics`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch HR metrics');
+  }
+  return await response.json();
+};
+
+// Security Endpoints
+export const fetchSecurityIncidents = async (): Promise<SecurityIncident[]> => {
+  const response = await fetch(`${API_BASE_URL}/security/incidents`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch security incidents');
+  }
+  const data = await response.json();
+  return data.data || [];
+};
+
+export const fetchSafetyScores = async (): Promise<SafetyScore[]> => {
+  const response = await fetch(`${API_BASE_URL}/security/safety-scores`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch safety scores');
+  }
+  const data = await response.json();
+  return data.data || [];
+};
+
+// Supply Chain Endpoints
+export const fetchSupplyChainMetrics = async (): Promise<SupplyChainMetric[]> => {
+  const response = await fetch(`${API_BASE_URL}/supply-chain/metrics`);
   if (!response.ok) {
     throw new Error('Failed to fetch supply chain metrics');
   }
   const data = await response.json();
-  return data.data;
+  return data.data || [];
 };
 
-export const fetchHRAnalytics = async (): Promise<HRAnalytics[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/hr/analytics`);
+export const fetchSupplyChainDisruptions = async (): Promise<SupplyChainDisruption[]> => {
+  const response = await fetch(`${API_BASE_URL}/supply-chain/disruptions`);
   if (!response.ok) {
-    throw new Error('Failed to fetch HR analytics');
+    throw new Error('Failed to fetch supply chain disruptions');
   }
   const data = await response.json();
-  return data.data;
+  return data.data || [];
+};
+
+// Narrative Endpoint
+export const fetchDataNarrative = async (): Promise<DataNarrative> => {
+  const response = await fetch(`${API_BASE_URL}/narrative/insight`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch data narrative');
+  }
+  return await response.json();
 };

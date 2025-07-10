@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: wayne-enterprises-dashboard
+    env: node
+    buildCommand: npm run install-all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: PORT
+        value: 8000
+      - key: NEXT_PUBLIC_API_URL
+        value: /api
+    plan: free
+    region: oregon
+    autoDeploy: true
