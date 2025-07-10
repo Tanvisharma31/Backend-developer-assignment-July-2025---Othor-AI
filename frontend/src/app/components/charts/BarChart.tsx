@@ -10,10 +10,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-interface BarChartProps {
-  data: any[];
-  xDataKey: string;
-  barDataKeys: string[];
+type ValueType = string | number | Array<string | number>;
+type NameType = string | number;
+
+interface BarChartProps<T> {
+  data: T[];
+  xDataKey: keyof T;
+  barDataKeys: (keyof T)[];
   colors?: string[];
   title?: string;
   xAxisLabel?: string;
@@ -27,6 +30,14 @@ interface BarChartProps {
   };
   barSize?: number;
   stacked?: boolean;
+  tooltipFormatter?: (
+    value: ValueType,
+    name: NameType,
+    props: any,
+    payload: any,
+  ) => [string, string];
+  legendFormatter?: (value: string, entry: any) => React.ReactNode;
+  tooltipLabelFormatter?: (label: string | number) => string;
 }
 
 const defaultColors = [
@@ -50,7 +61,7 @@ export default function BarChart({
   margin = { top: 5, right: 30, left: 20, bottom: 5 },
   barSize = 30,
   stacked = false,
-}: BarChartProps) {
+}: BarChartProps<any>) {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-50 rounded-lg p-4">
@@ -71,26 +82,26 @@ export default function BarChart({
             barGap={stacked ? 0 : 2}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey={xDataKey} 
-              label={{ 
-                value: xAxisLabel, 
-                position: 'insideBottom', 
+            <XAxis
+              dataKey={xDataKey as string}
+              label={{
+                value: xAxisLabel,
+                position: 'insideBottom',
                 offset: -5,
                 className: 'text-xs fill-gray-500'
               }}
               tick={{ fontSize: 12 }}
             />
-            <YAxis 
-              label={{ 
-                value: yAxisLabel, 
-                angle: -90, 
+            <YAxis
+              label={{
+                value: yAxisLabel,
+                angle: -90,
                 position: 'insideLeft',
                 className: 'text-xs fill-gray-500'
               }}
               tick={{ fontSize: 12 }}
             />
-            <Tooltip 
+            <Tooltip
               contentStyle={{
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
                 border: '1px solid #e5e7eb',
@@ -99,16 +110,19 @@ export default function BarChart({
               }}
             />
             <Legend />
-            {barDataKeys.map((key, index) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                fill={colors[index % colors.length]}
-                name={key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                stackId={stacked ? 'stack' : undefined}
-                radius={[4, 4, 0, 0]}
-              />
-            ))}
+            {barDataKeys.map((key: string | number | symbol, index: number) => {
+              const keyString = String(key); // Convert to string
+              return (
+                <Bar
+                  key={keyString}
+                  dataKey={keyString}
+                  fill={colors[index % colors.length]}
+                  name={keyString.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  stackId={stacked ? 'stack' : undefined}
+                  radius={[4, 4, 0, 0]}
+                />
+              );
+            })}
           </RechartsBarChart>
         </ResponsiveContainer>
       </div>
