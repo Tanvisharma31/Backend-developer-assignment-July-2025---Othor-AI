@@ -8,18 +8,18 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY backend/requirements.txt .
+# Copy requirements first for better layer caching
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
-COPY backend/ .
+# Copy the application code
+COPY . .
 
 # Create necessary directories
 RUN mkdir -p data
 
 # Copy the datasets
-COPY datasets/ /app/data/
+COPY datasets/ data/
 
 # Expose the port the app runs on
 EXPOSE 8000
