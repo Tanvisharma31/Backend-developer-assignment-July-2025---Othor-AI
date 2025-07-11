@@ -3,9 +3,17 @@
 
 # Build the backend
 FROM python:3.11-slim as backend-builder
+
+# Install system dependencies first
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app/backend
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 
 # Build the frontend
@@ -16,16 +24,18 @@ RUN npm install
 COPY frontend/ .
 RUN npm run build
 
-# Final stage - Use Node.js as base since we need both Node and Python
-FROM node:18-slim
+# Final stage - Use Python as base since it's heavier than Node
+FROM python:3.11-slim
 
-# Install Python and build dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-dev \
-    gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
 
 WORKDIR /app
 
@@ -46,13 +56,14 @@ COPY datasets/ /app/backend/data/
 WORKDIR /app/frontend
 RUN npm install --only=production
 
-# Python dependencies are already installed in the backend-builder stage
-
 # Set working directory to backend for the CMD
 WORKDIR /app/backend
 
 # Expose ports
 EXPOSE 8000 3000
+
+# Install Python dependencies again in final stage to ensure they're available
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Command to run both services
 CMD sh -c "cd /app/frontend && npm start & cd /app/backend && uvicorn main:app --host 0.0.0.0 --port 8000"
