@@ -46,9 +46,7 @@ COPY datasets/ /app/backend/data/
 WORKDIR /app/frontend
 RUN npm install --only=production
 
-# Install Python dependencies
-WORKDIR /app/backend
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Python dependencies are already installed in the backend-builder stage
 
 # Set working directory to backend for the CMD
 WORKDIR /app/backend
