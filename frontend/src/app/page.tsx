@@ -1,349 +1,216 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { 
-  FiDollarSign, 
-  FiShield,
-  FiClock,
-  FiBriefcase,
-  FiAward,
-  FiActivity,
-  FiAlertTriangle,
-  FiTrendingDown,
-  FiUsers
-} from 'react-icons/fi';
-import DashboardLayout from './components/layout/DashboardLayout';
-import MetricCard from './components/cards/MetricCard';
-import LineChart from './components/charts/LineChart';
-import BarChart from './components/charts/BarChart';
-import PieChart from './components/charts/PieChart';
-import { 
-  fetchSummaryMetrics,
-  fetchRevenueTrends,
-  fetchRevenueByDivision,
-  fetchRetentionRates,
-  fetchHRMetrics,
-  fetchSecurityIncidents,
-  fetchSafetyScores,
-  fetchSupplyChainMetrics,
-  fetchDataNarrative,
-  type SummaryMetrics,
-  type RevenueTrendData,
-  type RetentionData,
-  type DataNarrative
-} from './utils/api';
+  ArrowUpIcon, 
+  ArrowDownIcon, 
+  UserGroupIcon, 
+  ShieldCheckIcon, 
+  ChartBarIcon 
+} from '@heroicons/react/24/outline';
+import dynamic from 'next/dynamic';
 
-export default function Home() {
-  // State for dashboard data
-  const [summary, setSummary] = useState<SummaryMetrics | null>(null);
-  const [revenueTrends, setRevenueTrends] = useState<RevenueTrendData[]>([]);
-  const [retentionRates, setRetentionRates] = useState<Array<{month: string} & Record<string, number>>>([]);
-  const [securityIncidents, setSecurityIncidents] = useState<Array<{month: string} & Record<string, number>>>([]);
-  const [safetyScores, setSafetyScores] = useState<Array<{month: string} & Record<string, number>>>([]);
-  const [narrative, setNarrative] = useState<DataNarrative | null>(null);
-  
-  // UI State
+// Dynamically import charts to avoid SSR issues
+const RevenueChart = dynamic(() => import('@/components/Charts/RevenueChart'), { ssr: false });
+const EmployeeChart = dynamic(() => import('@/components/Charts/EmployeeChart'), { ssr: false });
+const SecurityChart = dynamic(() => import('@/components/Charts/SecurityChart'), { ssr: false });
+const QualityChart = dynamic(() => import('@/components/Charts/QualityChart'), { ssr: false });
+const RdChart = dynamic(() => import('@/components/Charts/RdChart'), { ssr: false });
+
+interface SummaryData {
+  total_revenue: number;
+  avg_retention: number;
+  avg_satisfaction: number;
+  avg_quality_score: number;
+  total_incidents: number;
+}
+
+interface NarrativeData {
+  headline: string;
+  subtitle: string;
+  insights: string[];
+}
+
+export default function Dashboard() {
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [narrative, setNarrative] = useState<NarrativeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Process revenue data for the line chart
-  const processRevenueData = () => {
-    if (!revenueTrends.length) return [];
-    
-    return revenueTrends.map(item => {
-      const { quarter, ...divisions } = item;
-      return {
-        name: quarter,
-        ...Object.fromEntries(
-          Object.entries(divisions).map(([key, value]) => [key, Number(value)])
-        )
-      };
-    });
-  };
-
-  // Process retention data for the area chart
-  const processRetentionData = () => {
-    if (!retentionRates.length) return [];
-    
-    return retentionRates.map(item => {
-      const { month, ...divisions } = item;
-      return {
-        name: month,
-        ...Object.fromEntries(
-          Object.entries(divisions).map(([key, value]) => [key, Number(value)])
-        )
-      };
-    });
-  };
-
-  // Process security incidents for the bar chart
-  const processSecurityData = () => {
-    if (!securityIncidents.length) return [];
-    
-    return securityIncidents.map(item => {
-      const { month, ...incidents } = item;
-      const total = Object.values(incidents)
-        .filter((v): v is number => typeof v === 'number')
-        .reduce((a, b) => a + b, 0);
-      
-      return {
-        name: month,
-        incidents: total
-      };
-    });
-  };
-
-  // Calculate metrics from the data
-  const totalRevenue = summary ? parseFloat(summary.total_revenue.replace(/[^0-9.-]+/g, '')) : 0;
-  const avgRetention = summary ? parseFloat(summary.avg_retention) : 0;
-  const safetyScore = summary ? parseFloat(summary.public_safety_score) : 0;
-  const topDivision = summary?.top_division || 'N/A';
-  
-  const totalIncidents = securityIncidents.reduce((sum, item) => {
-    return sum + Object.values(item)
-      .filter((v): v is number => typeof v === 'number')
-      .reduce((a, b) => a + b, 0);
-  }, 0);
-  
-  // Get the most recent safety score
-  const latestSafetyScore = safetyScores.length > 0 
-    ? safetyScores[safetyScores.length - 1] 
-    : null;
-    
-  const avgSafetyScore = latestSafetyScore 
-    ? Object.values(latestSafetyScore)
-        .filter((v): v is number => typeof v === 'number')
-        .reduce((a, b) => a + b, 0) / 
-      Object.keys(latestSafetyScore).filter(k => k !== 'month').length
-    : 0;
-
-  // Fetch all data on component mount
   useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true);
-        
-        // Fetch all data in parallel
-        const [
-          summaryData,
-          revenueData,
-          retentionData,
-          securityIncidentData,
-          safetyScoreData,
-          narrativeData
-        ] = await Promise.all([
-          fetchSummaryMetrics(),
-          fetchRevenueTrends(),
-          fetchRetentionRates(),
-          fetchSecurityIncidents(),
-          fetchSafetyScores(),
-          fetchDataNarrative()
+        // In a real app, you would use environment variables for the API URL
+        const [summaryRes, narrativeRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/summary`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/narrative`)
         ]);
-        
-        // Update state with fetched data
+
+        if (!summaryRes.ok || !narrativeRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const [summaryData, narrativeData] = await Promise.all([
+          summaryRes.json(),
+          narrativeRes.json()
+        ]);
+
         setSummary(summaryData);
-        setRevenueTrends(revenueData);
-        setRetentionRates(retentionData);
-        setSecurityIncidents(securityIncidentData);
-        setSafetyScores(safetyScoreData);
         setNarrative(narrativeData);
-        
-        setError(null);
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load dashboard data. Please try again later.');
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAllData();
+    fetchData();
   }, []);
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </DashboardLayout>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <DashboardLayout>
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          Error: {error}
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      {/* Page Header */}
-      <div className="pb-5 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-gray-900">Executive Dashboard</h1>
-        <p className="mt-2 max-w-4xl text-sm text-gray-500">
-          Key performance indicators and business insights for Wayne Enterprises
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Wayne Enterprises</h1>
+        <p className="text-gray-600">Business Intelligence Dashboard</p>
+      </header>
 
-      {/* Key Metrics */}
-      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <SummaryCard
           title="Total Revenue"
-          value={`$${(totalRevenue / 1000000).toFixed(1)}M`}
+          value={summary?.total_revenue ? `$${(summary.total_revenue / 1e6).toFixed(1)}M` : 'N/A'}
           change={12.5}
-          icon={<FiDollarSign className="h-6 w-6" />}
-          color="blue"
+          icon={<ChartBarIcon className="h-6 w-6 text-blue-500" />}
         />
-        <MetricCard
-          title="Avg. Retention Rate"
-          value={`${avgRetention}%`}
-          change={5.2}
-          icon={<FiUsers className="h-6 w-6" />}
-          color="green"
+        <SummaryCard
+          title="Retention Rate"
+          value={summary?.avg_retention ? `${summary.avg_retention}%` : 'N/A'}
+          change={3.2}
+          icon={<UserGroupIcon className="h-6 w-6 text-green-500" />}
         />
-        <MetricCard
+        <SummaryCard
+          title="Satisfaction"
+          value={summary?.avg_satisfaction ? `${summary.avg_satisfaction}/5` : 'N/A'}
+          change={-1.8}
+          icon={<ShieldCheckIcon className="h-6 w-6 text-yellow-500" />}
+        />
+        <SummaryCard
           title="Security Incidents"
-          value={totalIncidents.toString()}
-          change={-8.3}
-          icon={<FiShield className="h-6 w-6" />}
-          color="red"
-        />
-        <MetricCard
-          title="Avg. Safety Score"
-          value={`${avgSafetyScore.toFixed(1)}/10`}
-          change={2.4}
-          icon={<FiActivity className="h-6 w-6" />}
-          color="purple"
+          value={summary?.total_incidents?.toString() || 'N/A'}
+          change={-15.3}
+          isNegative
+          icon={<ShieldCheckIcon className="h-6 w-6 text-red-500" />}
         />
       </div>
 
-      {/* Revenue Trends */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Revenue Trends</h2>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <LineChart
-            data={processRevenueData()}
-            xDataKey="name"
-            lineDataKeys={revenueTrends.length > 0 
-              ? Object.keys(revenueTrends[0] || {}).filter(k => k !== 'quarter')
-              : []}
-            title="Quarterly Revenue by Division"
-            yAxisLabel="Revenue ($M)"
-            height={400}
-          />
-        </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Security Incidents */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Security Incidents</h3>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Revenue vs R&D Investment</h2>
           <div className="h-80">
-            <BarChart
-              data={processSecurityData()}
-              xDataKey="name"
-              barDataKeys={['incidents']}
-              yAxisLabel="Incidents"
-              height={350}
-              barSize={30}
-            />
+            <RevenueChart />
           </div>
         </div>
-
-        {/* Retention Rates */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Retention Rates</h3>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Employee Performance</h2>
           <div className="h-80">
-            <LineChart
-              data={processRetentionData()}
-              xDataKey="name"
-              lineDataKeys={retentionRates.length > 0 
-                ? Object.keys(retentionRates[0] || {}).filter(k => k !== 'month')
-                : []}
-              yAxisLabel="Retention Rate (%)"
-              height={350}
-            />
+            <EmployeeChart />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Security Incidents</h2>
+          <div className="h-80">
+            <SecurityChart />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Product Quality</h2>
+          <div className="h-80">
+            <QualityChart />
           </div>
         </div>
       </div>
 
-      {/* Data Narrative */}
-      <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 bg-gray-50">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
-            {narrative?.headline || 'Executive Dashboard Insights'}
-          </h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            {narrative?.timestamp ? `Last updated: ${new Date(narrative.timestamp).toLocaleString()}` : 'Loading insights...'}
-          </p>
+      {/* Narrative Section */}
+      {narrative && (
+        <div className="bg-blue-50 p-6 rounded-lg shadow mb-8">
+          <h2 className="text-2xl font-bold text-blue-800 mb-2">{narrative.headline}</h2>
+          <p className="text-blue-700 mb-4">{narrative.subtitle}</p>
+          <ul className="space-y-2">
+            {narrative.insights.map((insight, index) => (
+              <li key={index} className="flex items-start">
+                <span className="text-blue-500 mr-2">•</span>
+                <span className="text-gray-700">{insight}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
-          <dl className="sm:divide-y sm:divide-gray-200">
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Financial Performance</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {narrative?.insight || 'Loading financial insights...'}
-                {narrative?.metrics && (
-                  <div className="mt-2 grid grid-cols-2 gap-4 text-xs text-gray-600">
-                    <div>Total Revenue: {narrative.metrics.total_revenue}</div>
-                    <div>Revenue Growth: {narrative.metrics.revenue_growth}</div>
-                  </div>
-                )}
-              </dd>
-            </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Security & Safety</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {narrative?.metrics && (
-                  <div className="space-y-2">
-                    <p>
-                      {totalIncidents} security incidents were reported this period, with an average safety score of {narrative.metrics.avg_safety_score}.
-                      Our security initiatives are showing positive results across all districts.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
-                      <div>Total Incidents: {narrative.metrics.total_incidents}</div>
-                      <div>Avg Safety Score: {narrative.metrics.avg_safety_score}</div>
-                    </div>
-                  </div>
-                )}
-              </dd>
-            </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Employee & Operations</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {narrative?.metrics && (
-                  <div className="space-y-2">
-                    <p>
-                      Employee retention remains strong at {narrative.metrics.avg_retention}, with high satisfaction scores across all divisions.
-                      Supply chain operations show {narrative.metrics.avg_quality_score} quality score with {narrative.metrics.total_disruptions} disruptions.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
-                      <div>Avg Retention: {narrative.metrics.avg_retention}</div>
-                      <div>Avg Satisfaction: {narrative.metrics.avg_satisfaction}</div>
-                      <div>Supply Chain Quality: {narrative.metrics.avg_quality_score}</div>
-                      <div>Total Disruptions: {narrative.metrics.total_disruptions}</div>
-                    </div>
-                  </div>
-                )}              </dd>
-            </div>
-          </dl>
+      )}
+
+      {/* R&D Chart */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-semibold mb-4">R&D Budget vs Commercial Potential</h2>
+        <div className="h-96">
+          <RdChart />
         </div>
       </div>
-    </DashboardLayout>
+    </div>
+  );
+}
+
+interface SummaryCardProps {
+  title: string;
+  value: string;
+  change: number;
+  icon: React.ReactNode;
+  isNegative?: boolean;
+}
+
+function SummaryCard({ title, value, change, icon, isNegative = false }: SummaryCardProps) {
+  const isPositive = change >= 0;
+  const changeColor = isNegative 
+    ? (isPositive ? 'text-red-500' : 'text-green-500')
+    : (isPositive ? 'text-green-500' : 'text-red-500');
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-1">{value}</p>
+          <div className={`flex items-center mt-2 ${changeColor}`}>
+            {isPositive ? (
+              <ArrowUpIcon className="h-4 w-4 mr-1" />
+            ) : (
+              <ArrowDownIcon className="h-4 w-4 mr-1" />
+            )}
+            <span className="text-sm font-medium">
+              {Math.abs(change)}% {isPositive ? 'increase' : 'decrease'} from last quarter
+            </span>
+          </div>
+        </div>
+        <div className="p-3 rounded-full bg-blue-50">
+          {icon}
+        </div>
+      </div>
+    </div>
   );
 }

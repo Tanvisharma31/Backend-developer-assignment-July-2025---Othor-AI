@@ -1,18 +1,31 @@
+# render.yaml
 services:
   - type: web
-    name: wayne-enterprises-dashboard
-    env: node
-    buildCommand: npm run install-all && npm run build
-    startCommand: npm start
+    name: wayne-enterprises-backend
+    env: python
+    build:
+      dockerfile: backend/Dockerfile
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI
-        sync: false
-      - key: PORT
-        value: 8000
-      - key: NEXT_PUBLIC_API_URL
-        value: /api
+      - key: PYTHON_VERSION
+        value: 3.11
     plan: free
-    region: oregon
-    autoDeploy: true
+    numInstances: 1
+
+  - type: web
+    name: wayne-enterprises-frontend
+    env: node
+    build:
+      dockerfile: frontend/Dockerfile
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: wayne-enterprises-backend
+          type: web
+          property: url
+    plan: free
+    routes:
+      - type: rewrite
+        source: /
+        destination: /index.html
