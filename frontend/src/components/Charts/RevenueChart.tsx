@@ -16,12 +16,6 @@ interface ApiDataPoint {
   'r&d_investment': number;
 }
 
-interface DataPoint {
-  quarter: string;
-  revenue: number;
-  rnd_investment: number;
-}
-
 export default function RevenueChart() {
   const [data, setData] = useState<RevenueDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
