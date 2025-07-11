@@ -89,7 +89,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Wayne Enterprises</h1>
-        <p className="text-gray-600">Business Intelligence Dashboard</p>
+        <p className="text-gray-800">Business Intelligence Dashboard</p>
       </header>
 
       {/* Summary Cards */}
@@ -124,25 +124,25 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Revenue vs R&D Investment</h2>
+          <h2 className="text-xl text-gray-800 font-semibold mb-4">Revenue vs R&D Investment</h2>
           <div className="h-80">
             <RevenueChart />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Employee Performance</h2>
+          <h2 className="text-xl text-gray-800 font-semibold mb-4">Employee Performance</h2>
           <div className="h-80">
             <EmployeeChart />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Security Incidents</h2>
+          <h2 className="text-xl text-gray-800 font-semibold mb-4">Security Incidents</h2>
           <div className="h-80">
             <SecurityChart />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Product Quality</h2>
+          <h2 className="text-xl text-gray-800 font-semibold mb-4">Product Quality</h2>
           <div className="h-80">
             <QualityChart />
           </div>
