@@ -1,33 +1,16 @@
 # render.yaml
 services:
   - type: web
-    name: wayne-enterprises-backend
-    env: python
+    name: wayne-enterprises
+    env: docker
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
-    plan: free
-    numInstances: 1
-
-  - type: web
-    name: wayne-enterprises-frontend
-    env: node
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    envVars:
       - key: NODE_VERSION
         value: 18
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: wayne-enterprises-backend
-          type: web
-          property: url
     plan: free
-    routes:
-      - type: rewrite
-        source: /
-        destination: /index.html
+    numInstances: 1
+    httpPort: 3000
+    healthCheckPath: /
