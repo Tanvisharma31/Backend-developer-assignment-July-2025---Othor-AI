@@ -26,7 +26,7 @@ export default function RdChart() {
         const divisions = ['Aerospace', 'Defense', 'Tech', 'Energy', 'Healthcare'];
         const mockData: DataPoint[] = [];
         
-        divisions.forEach((division, divIndex) => {
+        divisions.forEach((division) => {
           for (let i = 0; i < 5; i++) {
             const budget = Math.floor(Math.random() * 10) + 1;
             const potential = Math.random() * 3 + 1;
@@ -112,7 +112,7 @@ export default function RdChart() {
             <ZAxis type="number" dataKey="roi" range={[100, 1000]} name="ROI" />
             <Tooltip 
               cursor={{ strokeDasharray: '3 3' }}
-              formatter={(value: any, name: string) => {
+              formatter={(value: number, name: string) => {
                 if (name === 'Budget') return [`$${value / 1000000}M`, name];
                 if (name === 'ROI') return [`${(value * 100).toFixed(0)}%`, name];
                 return [value, name];

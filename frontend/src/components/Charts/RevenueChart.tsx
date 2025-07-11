@@ -1,7 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+interface RevenueDataPoint {
+  quarter: string;
+  revenue: number;
+  rnd_investment: number;
+}
+
+interface ApiDataPoint {
+  division: string;
+  quarter: string;
+  revenue: number;
+  'r&d_investment': number;
+}
 
 interface DataPoint {
   quarter: string;
@@ -10,7 +23,7 @@ interface DataPoint {
 }
 
 export default function RevenueChart() {
-  const [data, setData] = useState<DataPoint[]>([]);
+  const [data, setData] = useState<RevenueDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,17 +31,17 @@ export default function RevenueChart() {
       try {
         const response = await fetch('http://localhost:8000/api/charts/1');
         if (!response.ok) throw new Error('Failed to fetch data');
-        const rawData = await response.json();
+        const rawData: ApiDataPoint[] = await response.json();
         
         // Transform data for the chart
         const transformedData = rawData
-          .filter((item: any) => item.division === 'Aerospace') // Example filter
-          .map((item: any) => ({
+          .filter((item: ApiDataPoint) => item.division === 'Aerospace')
+          .map((item: ApiDataPoint) => ({
             quarter: `Q${item.quarter}`,
-            revenue: item.revenue / 1e6, // Convert to millions
+            revenue: item.revenue / 1e6,
             rnd_investment: item['r&d_investment'] / 1e6
           }))
-          .sort((a: any, b: any) => a.quarter.localeCompare(b.quarter));
+          .sort((a: RevenueDataPoint, b: RevenueDataPoint) => a.quarter.localeCompare(b.quarter));
 
         setData(transformedData);
       } catch (error) {

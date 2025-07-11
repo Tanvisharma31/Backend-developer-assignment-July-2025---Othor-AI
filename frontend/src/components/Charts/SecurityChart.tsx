@@ -18,12 +18,12 @@ export default function SecurityChart() {
       try {
         // Mock data - in a real app, this would come from your API
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const mockData: DataPoint[] = months.map((month, index) => ({
+        const mockData: DataPoint[] = months.map((month) => ({
           month,
           incidents: Math.floor(Math.random() * 15) + 5,
           deployments: Math.floor(Math.random() * 8) + 2
         }));
-        
+          
         setData(mockData);
       } catch (error) {
         console.error('Error fetching data:', error);
