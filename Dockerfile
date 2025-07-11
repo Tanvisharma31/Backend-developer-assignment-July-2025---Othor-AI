@@ -16,15 +16,18 @@ RUN npm install
 COPY frontend/ .
 RUN npm run build
 
-# Final stage
-FROM python:3.11-slim
-WORKDIR /app
+# Final stage - Use Node.js as base since we need both Node and Python
+FROM node:18-slim
 
-# Install system dependencies
+# Install Python and build dependencies
 RUN apt-get update && apt-get install -y \
-    gcc \
+    python3 \
+    python3-pip \
     python3-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 # Copy backend
 COPY --from=backend-builder /app/backend /app/backend
@@ -43,7 +46,11 @@ COPY datasets/ /app/backend/data/
 WORKDIR /app/frontend
 RUN npm install --only=production
 
-# Set working directory back to backend
+# Install Python dependencies
+WORKDIR /app/backend
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Set working directory to backend for the CMD
 WORKDIR /app/backend
 
 # Expose ports
